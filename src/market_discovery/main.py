@@ -5,13 +5,10 @@ from market_discovery.config import Settings
 from market_discovery.database import get_session, init_db
 from market_discovery.export import WebhookExporter
 from market_discovery.extractors import Categorizer, PatternExtractor
+from market_discovery.logging_config import configure_logging
 from market_discovery.models import Opportunity
 from market_discovery.sources import GitHubScraper, HackerNewsScraper, RedditScraper, StackOverflowScraper
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
 logger = logging.getLogger(__name__)
 
 CYCLE_INTERVAL_SECONDS = 12 * 3600
@@ -108,6 +105,7 @@ class DiscoveryOrchestrator:
 
 
 async def _main() -> None:
+    configure_logging()
     settings = Settings()
     init_db(settings.database_url)
     await DiscoveryOrchestrator(settings).run()

@@ -7,6 +7,7 @@ from sqlalchemy import or_
 
 from market_discovery.config import Settings
 from market_discovery.database import get_session, init_db
+from market_discovery.logging_config import configure_logging
 from market_discovery.models import Opportunity
 
 # How long a claimed-but-unacked opportunity stays hidden from other callers before
@@ -17,6 +18,7 @@ CLAIM_VISIBILITY_TIMEOUT = timedelta(minutes=10)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    configure_logging()
     init_db(Settings().database_url)
     yield
 
