@@ -2,6 +2,9 @@ from market_discovery.models import Niche
 
 CATEGORY_KEYWORDS = {
     "backend": ["api", "server", "database", "backend", "microservice"],
+    # Checked before "frontend": "react native" would otherwise match "frontend"'s
+    # "react" keyword first and never reach this more specific category.
+    "mobile": ["ios", "android", "flutter", "react native", "swift", "kotlin", "xcode", "mobile app"],
     "frontend": ["ui", "frontend", "react", "css", "component"],
     "devops": ["deploy", "ci/cd", "docker", "kubernetes", "infra"],
     "data": ["data", "analytics", "etl", "pipeline", "ml"],
