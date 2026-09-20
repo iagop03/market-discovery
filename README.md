@@ -31,7 +31,7 @@ pip install -e ".[api]"
 uvicorn market_discovery.api.app:app --reload
 ```
 
-`GET /opportunities/new` returns and marks-as-exported any opportunity not yet claimed — this is what `market-orchestrator`'s `DiscoveryClient` polls.
+`GET /opportunities/new` claims any opportunity not yet claimed and returns it — this is what `market-orchestrator`'s `DiscoveryClient` polls. A claim is provisional: it must be confirmed with `POST /opportunities/ack {"ids": [...]}` once the caller has durably stored it, otherwise the claim expires after 10 minutes and the opportunity becomes claimable again. This makes delivery at-least-once (safe here since the orchestrator dedupes by niche title + source) instead of at-most-once, so a crash between claim and ack never silently drops an opportunity.
 
 ## Tests
 

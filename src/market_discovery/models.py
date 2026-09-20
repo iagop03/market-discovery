@@ -21,6 +21,7 @@ class Opportunity(Base):
     category: Mapped[str] = mapped_column(String(50), default="other")
     status: Mapped[str] = mapped_column(String(20), default="discovered")
     exported: Mapped[bool] = mapped_column(Boolean, default=False)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     confidence: Mapped[float] = mapped_column(Float, default=0.5)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
