@@ -1,9 +1,19 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-from market_discovery.database import get_session
+from market_discovery.config import Settings
+from market_discovery.database import get_session, init_db
 from market_discovery.models import Opportunity
 
-app = FastAPI(title="market-discovery")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db(Settings().database_url)
+    yield
+
+
+app = FastAPI(title="market-discovery", lifespan=lifespan)
 
 
 @app.get("/opportunities/new")

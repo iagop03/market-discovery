@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime, timezone
 
@@ -26,18 +27,23 @@ class RedditScraper(SourceScraper):
         posts: list[Post] = []
         for subreddit_name in SUBREDDITS:
             try:
-                subreddit = self.reddit.subreddit(subreddit_name)
-                for submission in subreddit.new(limit=limit):
-                    if submission.score < 5:
-                        continue
-                    posts.append(Post(
-                        text=f"{submission.title}\n{submission.selftext}",
-                        source="reddit",
-                        author=submission.author.name if submission.author else "deleted",
-                        url=f"https://reddit.com{submission.permalink}",
-                        timestamp=datetime.fromtimestamp(submission.created_utc, tz=timezone.utc),
-                        upvotes=submission.score,
-                    ))
+                posts.extend(await asyncio.to_thread(self._scrape, subreddit_name, limit))
             except Exception:
                 logger.exception("Error scraping r/%s", subreddit_name)
+        return posts
+
+    def _scrape(self, subreddit_name: str, limit: int) -> list[Post]:
+        posts: list[Post] = []
+        subreddit = self.reddit.subreddit(subreddit_name)
+        for submission in subreddit.new(limit=limit):
+            if submission.score < 5:
+                continue
+            posts.append(Post(
+                text=f"{submission.title}\n{submission.selftext}",
+                source="reddit",
+                author=submission.author.name if submission.author else "deleted",
+                url=f"https://reddit.com{submission.permalink}",
+                timestamp=datetime.fromtimestamp(submission.created_utc, tz=timezone.utc),
+                upvotes=submission.score,
+            ))
         return posts
