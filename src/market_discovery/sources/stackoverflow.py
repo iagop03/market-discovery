@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 import aiohttp
 
+from market_discovery.rate_limit import RateLimiter
 from market_discovery.retry import retry_async
 
 from .base import Post, SourceScraper
@@ -15,10 +16,16 @@ TAGS = ["python", "devops", "rest-api", "docker", "kubernetes"]
 
 
 class StackOverflowScraper(SourceScraper):
+    def __init__(self) -> None:
+        # Anonymous StackExchange quota is small (300/day); throttling avoids bursting
+        # what's left of it in one cycle, even though it can't fix quota exhaustion itself.
+        self._rate_limiter = RateLimiter(min_interval=1.0)
+
     async def fetch_recent(self, limit: int = 20) -> list[Post]:
         posts: list[Post] = []
         async with aiohttp.ClientSession() as session:
             for tag in TAGS:
+                await self._rate_limiter.acquire()
                 try:
                     data = await retry_async(
                         lambda: self._fetch_tag(session, tag, limit),

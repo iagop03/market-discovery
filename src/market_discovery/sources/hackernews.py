@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 import aiohttp
 
+from market_discovery.rate_limit import RateLimiter
 from market_discovery.retry import retry_async
 
 from .base import Post, SourceScraper
@@ -15,10 +16,14 @@ QUERIES = ["need a tool for", "alternative to", "is broken"]
 
 
 class HackerNewsScraper(SourceScraper):
+    def __init__(self) -> None:
+        self._rate_limiter = RateLimiter(min_interval=0.5)  # Algolia HN API is generous; still throttle
+
     async def fetch_recent(self, limit: int = 20) -> list[Post]:
         posts: list[Post] = []
         async with aiohttp.ClientSession() as session:
             for query in QUERIES:
+                await self._rate_limiter.acquire()
                 try:
                     data = await retry_async(
                         lambda: self._fetch_query(session, query, limit),

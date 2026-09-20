@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 import praw
 
+from market_discovery.rate_limit import RateLimiter
 from market_discovery.retry import retry_async
 
 from .base import Post, SourceScraper
@@ -24,10 +25,12 @@ class RedditScraper(SourceScraper):
             client_secret=client_secret,
             user_agent="MarketDiscovery/1.0",
         )
+        self._rate_limiter = RateLimiter(min_interval=1.0)  # well under Reddit's OAuth ~60/min
 
     async def fetch_recent(self, limit: int = 20) -> list[Post]:
         posts: list[Post] = []
         for subreddit_name in SUBREDDITS:
+            await self._rate_limiter.acquire()
             try:
                 posts.extend(await retry_async(lambda: asyncio.to_thread(self._scrape, subreddit_name, limit)))
             except Exception:

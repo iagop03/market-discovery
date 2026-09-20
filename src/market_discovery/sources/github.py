@@ -4,6 +4,7 @@ from datetime import timezone
 
 from github import Github
 
+from market_discovery.rate_limit import RateLimiter
 from market_discovery.retry import retry_async
 
 from .base import Post, SourceScraper
@@ -25,10 +26,12 @@ class GitHubScraper(SourceScraper):
                 "rate-limits unauthenticated requests heavily; set GITHUB_TOKEN."
             )
         self.github = Github(token) if token else Github()
+        self._rate_limiter = RateLimiter(min_interval=2.0)  # GitHub search API: ~30 req/min authenticated
 
     async def fetch_recent(self, limit: int = 20) -> list[Post]:
         posts: list[Post] = []
         for query in SEARCH_QUERIES:
+            await self._rate_limiter.acquire()
             try:
                 posts.extend(await retry_async(lambda: asyncio.to_thread(self._search, query, limit)))
             except Exception:
