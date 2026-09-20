@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 import praw
 
+from market_discovery.retry import retry_async
+
 from .base import Post, SourceScraper
 
 logger = logging.getLogger(__name__)
@@ -27,7 +29,7 @@ class RedditScraper(SourceScraper):
         posts: list[Post] = []
         for subreddit_name in SUBREDDITS:
             try:
-                posts.extend(await asyncio.to_thread(self._scrape, subreddit_name, limit))
+                posts.extend(await retry_async(lambda: asyncio.to_thread(self._scrape, subreddit_name, limit)))
             except Exception:
                 logger.exception("Error scraping r/%s", subreddit_name)
         return posts

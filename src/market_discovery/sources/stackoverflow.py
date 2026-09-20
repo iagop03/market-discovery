@@ -1,7 +1,10 @@
+import asyncio
 import logging
 from datetime import datetime, timezone
 
 import aiohttp
+
+from market_discovery.retry import retry_async
 
 from .base import Post, SourceScraper
 
@@ -17,19 +20,10 @@ class StackOverflowScraper(SourceScraper):
         async with aiohttp.ClientSession() as session:
             for tag in TAGS:
                 try:
-                    params = {
-                        "order": "desc",
-                        "sort": "creation",
-                        "tagged": tag,
-                        "site": "stackoverflow",
-                        "pagesize": limit,
-                        "filter": "withbody",
-                    }
-                    async with session.get(
-                        SO_SEARCH_URL, params=params, timeout=aiohttp.ClientTimeout(total=15)
-                    ) as resp:
-                        resp.raise_for_status()
-                        data = await resp.json()
+                    data = await retry_async(
+                        lambda: self._fetch_tag(session, tag, limit),
+                        retry_on=(aiohttp.ClientError, asyncio.TimeoutError),
+                    )
                 except Exception:
                     logger.exception("Error querying Stack Overflow for tag %r", tag)
                     continue
@@ -44,3 +38,18 @@ class StackOverflowScraper(SourceScraper):
                         upvotes=item.get("score", 0),
                     ))
         return posts
+
+    async def _fetch_tag(self, session: aiohttp.ClientSession, tag: str, limit: int) -> dict:
+        params = {
+            "order": "desc",
+            "sort": "creation",
+            "tagged": tag,
+            "site": "stackoverflow",
+            "pagesize": limit,
+            "filter": "withbody",
+        }
+        async with session.get(
+            SO_SEARCH_URL, params=params, timeout=aiohttp.ClientTimeout(total=15)
+        ) as resp:
+            resp.raise_for_status()
+            return await resp.json()

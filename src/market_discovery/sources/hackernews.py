@@ -1,7 +1,10 @@
+import asyncio
 import logging
 from datetime import datetime, timezone
 
 import aiohttp
+
+from market_discovery.retry import retry_async
 
 from .base import Post, SourceScraper
 
@@ -17,12 +20,10 @@ class HackerNewsScraper(SourceScraper):
         async with aiohttp.ClientSession() as session:
             for query in QUERIES:
                 try:
-                    params = {"query": query, "tags": "comment", "hitsPerPage": limit}
-                    async with session.get(
-                        HN_SEARCH_URL, params=params, timeout=aiohttp.ClientTimeout(total=15)
-                    ) as resp:
-                        resp.raise_for_status()
-                        data = await resp.json()
+                    data = await retry_async(
+                        lambda: self._fetch_query(session, query, limit),
+                        retry_on=(aiohttp.ClientError, asyncio.TimeoutError),
+                    )
                 except Exception:
                     logger.exception("Error querying Hacker News for %r", query)
                     continue
@@ -40,3 +41,11 @@ class HackerNewsScraper(SourceScraper):
                         upvotes=hit.get("points") or 0,
                     ))
         return posts
+
+    async def _fetch_query(self, session: aiohttp.ClientSession, query: str, limit: int) -> dict:
+        params = {"query": query, "tags": "comment", "hitsPerPage": limit}
+        async with session.get(
+            HN_SEARCH_URL, params=params, timeout=aiohttp.ClientTimeout(total=15)
+        ) as resp:
+            resp.raise_for_status()
+            return await resp.json()

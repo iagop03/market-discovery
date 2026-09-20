@@ -13,8 +13,21 @@ This is the first stage of a larger pipeline: `market-discovery` finds niches, `
 ```bash
 pip install -e ".[dev]"
 cp .env.example .env  # fill in Reddit/GitHub credentials
-python scripts/init_db.py
+python scripts/init_db.py  # applies Alembic migrations
 ```
+
+## Database migrations
+
+Schema changes go through Alembic (`alembic/versions/`), not `Base.metadata.create_all()` directly —
+`create_all()` only creates missing tables, so an existing deployed DB would silently miss any new
+column added to a model. After changing a model:
+
+```bash
+alembic revision --autogenerate -m "describe the change"
+alembic upgrade head
+```
+
+`scripts/init_db.py` (`alembic upgrade head`) is the one command to run on a fresh or an existing DB.
 
 ## Run
 
@@ -38,3 +51,9 @@ uvicorn market_discovery.api.app:app --reload
 ```bash
 pytest
 ```
+
+## Running the full pipeline locally
+
+See `docker-compose.yml` in `market-orchestrator` (assumes both repos are checked out as
+siblings) — it builds and runs both services together, each with its own Postgres, for a local
+smoke test of discovery → validate → build end to end.

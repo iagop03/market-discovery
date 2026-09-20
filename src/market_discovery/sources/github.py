@@ -4,6 +4,8 @@ from datetime import timezone
 
 from github import Github
 
+from market_discovery.retry import retry_async
+
 from .base import Post, SourceScraper
 
 logger = logging.getLogger(__name__)
@@ -28,7 +30,7 @@ class GitHubScraper(SourceScraper):
         posts: list[Post] = []
         for query in SEARCH_QUERIES:
             try:
-                posts.extend(await asyncio.to_thread(self._search, query, limit))
+                posts.extend(await retry_async(lambda: asyncio.to_thread(self._search, query, limit)))
             except Exception:
                 logger.exception("Error searching GitHub issues for %r", query)
         return posts
