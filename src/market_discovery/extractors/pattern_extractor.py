@@ -2,6 +2,12 @@ import re
 
 from market_discovery.models import Niche
 
+# A genuine product/niche name is a short phrase, not a clause. Long-form prose (GitHub
+# issue bodies especially) often runs many words before the next line break or sentence
+# punctuation, so without a tight upper bound the captured group ends up being a whole
+# rambling clause instead of a plausible niche name.
+MAX_TITLE_LENGTH = 80
+
 PATTERNS = [
     # [^.!?\n] (not [^.!?]) bounds a match to a single line: GitHub issue bodies in
     # particular are long, multi-line markdown with few sentence-ending periods, so
@@ -26,7 +32,7 @@ class PatternExtractor:
         for pattern, confidence in PATTERNS:
             for match in re.finditer(pattern, text_lower, re.IGNORECASE | re.MULTILINE):
                 title = match.group(1).strip()
-                if 5 <= len(title) <= 200:
+                if 5 <= len(title) <= MAX_TITLE_LENGTH:
                     title = re.sub(r"\s+", " ", title)
                     niches.append(Niche(
                         title=title,

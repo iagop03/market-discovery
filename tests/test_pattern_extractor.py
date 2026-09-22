@@ -14,6 +14,19 @@ def test_ignores_short_matches():
     assert niches == []
 
 
+def test_rejects_long_rambling_clauses():
+    """A genuine niche name is a short phrase, not a whole clause — long-form prose
+    (e.g. a GitHub issue body written as one long line) shouldn't produce a "niche"
+    that's really just a rambling sentence fragment."""
+    extractor = PatternExtractor()
+    text = (
+        "therefore this is not a claim that every terminal call is unavailable, "
+        "that git itself is broken on every platform we support today"
+    )
+    niches = extractor.extract(text, source="github")
+    assert niches == []
+
+
 def test_does_not_span_lines_on_multiline_body():
     """Regression guard: [^.!?] matches newlines too, so on a long, mostly-unpunctuated
     multi-line body (typical of a GitHub issue) a naive pattern used to capture clear
