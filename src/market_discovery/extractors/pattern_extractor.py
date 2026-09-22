@@ -3,12 +3,16 @@ import re
 from market_discovery.models import Niche
 
 PATTERNS = [
-    (r"i\s+need\s+([^.!?]+?)\s+but\s+(?:it\s+doesn't\s+exist|there's\s+no)", 1.0),
-    (r"need\s+([^.!?]+?)\s+(?:but|and)", 0.8),
-    (r"([^.!?]+?)\s+(?:is\s+)?(?:broken|terrible|awful|sucks|doesn't\s+work)", 0.7),
-    (r"(?:looking\s+for|want|need)\s+(?:a\s+)?tool\s+(?:for|to)\s+([^.!?]+)", 0.8),
-    (r"(?:alternative|replacement)\s+(?:for|to)\s+([^.!?]+)", 0.9),
-    (r"([^.!?]+?)\s+as\s+a\s+service", 0.6),
+    # [^.!?\n] (not [^.!?]) bounds a match to a single line: GitHub issue bodies in
+    # particular are long, multi-line markdown with few sentence-ending periods, so
+    # without excluding newlines these patterns matched clear across paragraphs and
+    # captured meaningless multi-line fragments instead of one phrase.
+    (r"i\s+need\s+([^.!?\n]+?)\s+but\s+(?:it\s+doesn't\s+exist|there's\s+no)", 1.0),
+    (r"need\s+([^.!?\n]+?)\s+(?:but|and)", 0.8),
+    (r"([^.!?\n]+?)\s+(?:is\s+)?(?:broken|terrible|awful|sucks|doesn't\s+work)", 0.7),
+    (r"(?:looking\s+for|want|need)\s+(?:a\s+)?tool\s+(?:for|to)\s+([^.!?\n]+)", 0.8),
+    (r"(?:alternative|replacement)\s+(?:for|to)\s+([^.!?\n]+)", 0.9),
+    (r"([^.!?\n]+?)\s+as\s+a\s+service", 0.6),
 ]
 
 
