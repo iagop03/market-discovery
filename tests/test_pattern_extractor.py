@@ -46,3 +46,40 @@ def test_does_not_span_lines_on_multiline_body():
     assert any(t == "the ci pipeline" for t in titles)
     assert not any("\n" in t for t in titles)
     assert not any("unrelated trailing notes" in t for t in titles)
+
+
+def test_rejects_captures_starting_mid_clause():
+    """A genuine niche name reads as a noun phrase from its start ("a translator", "the
+    ci pipeline") — these all start with a pronoun/conjunction/preposition instead,
+    meaning the regex caught the tail of a clause rather than a real phrase."""
+    extractor = PatternExtractor()
+    for fragment in [
+        "to be careful is broken",
+        "that system is broken",
+        "there might be an extension is broken",
+        "and if it works is broken",
+    ]:
+        assert extractor.extract(fragment, source="github") == []
+
+
+def test_leading_article_is_still_accepted():
+    """Unlike the mid-clause stopwords, "a"/"the" leading into a real noun phrase must
+    still be accepted — this is what the very first test in this file already relies on."""
+    extractor = PatternExtractor()
+    niches = extractor.extract("the ci pipeline is broken", source="github")
+    assert any(n.title == "the ci pipeline" for n in niches)
+
+
+def test_decodes_html_entities_before_matching():
+    extractor = PatternExtractor()
+    text = "alternative to the tool that isn&#x27;t maintained anymore"
+    niches = extractor.extract(text, source="stackoverflow")
+    assert any("'" in n.title for n in niches)
+    assert not any("&#x27;" in n.title for n in niches)
+
+
+def test_rejects_captures_containing_html_tags():
+    extractor = PatternExtractor()
+    text = "alternative to <p>a half-finished markup fragment"
+    niches = extractor.extract(text, source="stackoverflow")
+    assert niches == []
